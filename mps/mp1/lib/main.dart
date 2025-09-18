@@ -105,8 +105,6 @@ class _HomePageState extends State<HomePage> {
       if(_parseGenUsingCompute) {
         //showErrorDialog(context, "generate on compute not implemented yet");
         
-        // compute requires a top-level or static function with one argument.
-        // fakeExternalGenerateBigJson(int) already matches that, so we can pass it directly.
         bigJson = await compute<int, String>(
         fakeExternalGenerateBigJson,
         count,
