@@ -93,6 +93,8 @@ class _HomePageState extends State<HomePage> {
       _elapsed = null;
       _samples = const [];
     });
+    await Future.delayed(const Duration(seconds: 1)); // outside setState
+    debugPrint('generateJson START: status=$_status busy=$_busy');
 
     final sw = Stopwatch()
       ..start();
@@ -119,10 +121,11 @@ class _HomePageState extends State<HomePage> {
       sw.stop();
       if (!mounted) return bigJson;
       setState(() {
-        _busy = false;
         _status = 'Done Generating';
         _elapsed = sw.elapsed;
       });
+      debugPrint('generateJson END: status=$_status busy=$_busy elapsed=$_elapsed');
+      await Future.delayed(const Duration(seconds: 1));
     return bigJson;
 
     } catch (e) {
@@ -161,6 +164,8 @@ class _HomePageState extends State<HomePage> {
         _elapsed = null;
         _samples = const [];
         });
+         debugPrint('parseJson START: status=$_status busy=$_busy');
+      await Future.delayed(const Duration(seconds: 1));
       }
       final parsed = _parseGenUsingCompute
         ? await compute<String, dynamic>(fakeExternalParseJson, raw)
@@ -178,6 +183,7 @@ class _HomePageState extends State<HomePage> {
         _count = summary.itemCount;
         _samples = summary.samples;
       });
+      debugPrint('parseJson END: status=$_status busy=$_busy elapsed=$_elapsed count=$_count');
     } catch (e) {
       sw.stop();
       if (mounted) {
