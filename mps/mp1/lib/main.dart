@@ -84,7 +84,7 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  String generateJson() {
+  Future<String> generateJson() async {
     setState(() {
       _busy = true;
       _status = 'Generating…';
@@ -103,7 +103,14 @@ class _HomePageState extends State<HomePage> {
 
 
       if(_parseGenUsingCompute) {
-        showErrorDialog(context, "generate on compute not implemented yet");
+        //showErrorDialog(context, "generate on compute not implemented yet");
+        
+        // compute requires a top-level or static function with one argument.
+        // fakeExternalGenerateBigJson(int) already matches that, so we can pass it directly.
+        bigJson = await compute<int, String>(
+        fakeExternalGenerateBigJson,
+        count,
+        );
       }
       else {
         bigJson = fakeExternalGenerateBigJson(count);
@@ -112,33 +119,30 @@ class _HomePageState extends State<HomePage> {
 
 
       sw.stop();
+      if (!mounted) return bigJson;
       setState(() {
         _busy = false;
         _status = 'Done Generating';
         _elapsed = sw.elapsed;
       });
-
+    return bigJson;
 
     } catch (e) {
       sw.stop();
+      if (mounted) {
       setState(() {
         _busy = false;
         _status = 'Error';
         _elapsed = sw.elapsed;
         _lastError = e.toString();
-        throw StateError("load failed: $e");
-      });
+        });
+      }
+      throw StateError("load failed: $e");
     }
-
-    finally {
-      return bigJson;
-    }
-
-
   }
 
   // YOU WILL NEED TO UPDATE THIS METHOD TO BE ASYNC AWARE
-  void parseJson({String? overrideRaw})  {
+  Future<void> parseJson({String? overrideRaw}) async {
     final sw = Stopwatch()
       ..start();
     try {
@@ -150,6 +154,7 @@ class _HomePageState extends State<HomePage> {
         raw = "";
       }
 
+      if (mounted) {
       setState(() {
         _busy = true;
         _status = 'Parsing…';
@@ -157,20 +162,17 @@ class _HomePageState extends State<HomePage> {
         _count = null;
         _elapsed = null;
         _samples = const [];
-      });
-
-      final parsed;
-
-      if(_parseGenUsingCompute) {
-        showErrorDialog(context, "parse on compute not implemented yet");
-        parsed = null;
+        });
       }
-      else {
-        parsed = fakeExternalParseJson(raw);
-      }
+      final parsed = _parseGenUsingCompute
+        ? await compute<String, dynamic>(fakeExternalParseJson, raw)
+        : fakeExternalParseJson(raw);
 
       sw.stop();
+      
       final summary = summarize(parsed);
+
+      if (!mounted) return;
       setState(() {
         _busy = false;
         _status = 'Done';
@@ -180,6 +182,7 @@ class _HomePageState extends State<HomePage> {
       });
     } catch (e) {
       sw.stop();
+      if (mounted) {
       setState(() {
         _busy = false;
         _status = 'Error';
@@ -188,7 +191,7 @@ class _HomePageState extends State<HomePage> {
       });
     }
   }
-
+}
 
   @override
   void dispose() {
@@ -218,15 +221,15 @@ class _HomePageState extends State<HomePage> {
                       child: PushButton(
                         onPressed: _busy
                             ? null
-                            : () {
+                            : () async {
                                 try {
 
                                     // YOU WILL NEED TO UPDATE THIS CODE TO BE ASYNC AWARE
                                     // SEE DOCUMENTATION ON 'THEN' FOR ORDERED TASKS
                                     // https://dart.dev/libraries/dart-async
 
-                                    String rawJson = generateJson();
-                                    parseJson(overrideRaw: rawJson);
+                                  final rawJson = await generateJson();   
+                                  await parseJson(overrideRaw: rawJson);
                                 } catch (e) {
                                   print(
                                       'Error during generation or parsing: $e');
